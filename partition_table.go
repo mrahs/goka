@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
+	"github.com/lovoo/goka/headers"
 	"github.com/lovoo/goka/multierr"
 	"github.com/lovoo/goka/storage"
 )
@@ -521,7 +522,7 @@ func (p *PartitionTable) loadMessages(ctx context.Context, cons sarama.Partition
 			}
 
 			lastMessage = time.Now()
-			if err := p.storeEvent(string(msg.Key), msg.Value, msg.Offset, msg.Headers...); err != nil {
+			if err := p.storeEvent(string(msg.Key), msg.Value, msg.Offset, headers.FromSarama(msg.Headers)); err != nil {
 				errs.Collect(fmt.Errorf("load: error updating storage: %v", err))
 				return
 			}
@@ -640,8 +641,8 @@ func (p *PartitionTable) updateHwmStats() {
 	}
 }
 
-func (p *PartitionTable) storeEvent(key string, value []byte, offset int64, headers ...*sarama.RecordHeader) error {
-	err := p.st.Update(key, value, headers...)
+func (p *PartitionTable) storeEvent(key string, value []byte, offset int64, headers Headers) error {
+	err := p.st.Update(key, value, headers)
 	if err != nil {
 		return fmt.Errorf("Error from the update callback while recovering from the log: %v", err)
 	}
